@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>หารกัน</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body class="bg-gray-100 p-4">
     <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md mt-10">
@@ -29,18 +30,30 @@
         <label class="block text-sm font-bold mb-1">หารกี่คน (รวมคนจ่าย):</label>
         <input type="number" id="people" class="w-full border p-2 mb-4 rounded" placeholder="จำนวนคน">
 
-        <button onclick="generateQR()" class="w-full bg-green-500 text-white p-3 rounded font-bold text-lg">คำนวณ & สร้าง QR</button>
+        <button onclick="generateQR()" class="w-full bg-green-500 text-white p-3 rounded font-bold text-lg mb-2">คำนวณ & ดูตัวอย่าง</button>
+        
+        <button id="send-btn" onclick="sendFlexMessage()" class="w-full bg-blue-500 text-white p-3 rounded font-bold text-lg hidden">ส่งบิลเข้ากลุ่ม LINE 🚀</button>
 
         <div id="result" class="mt-6 text-center hidden">
             <hr class="mb-4">
             <h3 class="text-xl font-bold text-red-600">โอนคนละ: <span id="pay-amount">0</span> บาท</h3>
             <img id="qr-img" src="" alt="PromptPay QR Code" class="mx-auto mt-4 border-2 border-gray-200 p-2 rounded-lg">
-            <p class="text-sm text-gray-500 mt-2">สแกนผ่านแอปธนาคารได้เลย</p>
         </div>
     </div>
 
     <script>
-        // ฟังก์ชันเพิ่มช่องรายการ
+        // กำหนดตัวแปรเก็บค่าไว้ส่ง Flex
+        let currentTotal = 0;
+        let currentPayPerPerson = 0;
+        let currentQrUrl = "";
+        let currentPeople = 0;
+
+        // Initialize LIFF
+        async function main() {
+            await liff.init({ liffId: "YOUR_LIFF_ID" }); // <-- เปลี่ยนตรงนี้เป็น LIFF ID ของคุณ
+        }
+        main();
+
         function addItem() {
             const container = document.getElementById('items-container');
             const row = document.createElement('div');
@@ -52,7 +65,6 @@
             container.appendChild(row);
         }
 
-        // ฟังก์ชันคำนวณยอดรวมเรียลไทม์
         function calculateTotal() {
             const prices = document.querySelectorAll('.item-price');
             let total = 0;
@@ -64,25 +76,59 @@
             return total;
         }
 
-        // ฟังก์ชันหารยอดและสร้าง QR
         function generateQR() {
             const ppId = document.getElementById('pp-id').value;
-            const total = calculateTotal();
-            const people = parseInt(document.getElementById('people').value);
+            currentTotal = calculateTotal();
+            currentPeople = parseInt(document.getElementById('people').value);
 
-            if(!ppId || total <= 0 || !people || people <= 0) {
+            if(!ppId || currentTotal <= 0 || !currentPeople || currentPeople <= 0) {
                 alert('กรุณากรอกข้อมูลให้ครบและถูกต้องครับ');
                 return;
             }
 
-            const payPerPerson = (total / people).toFixed(2);
-            document.getElementById('pay-amount').innerText = payPerPerson;
+            currentPayPerPerson = (currentTotal / currentPeople).toFixed(2);
+            document.getElementById('pay-amount').innerText = currentPayPerPerson;
             
-            // ใช้ promptpay.io สร้าง QR Image ให้เลย
-            const qrUrl = `https://promptpay.io/${ppId}/${payPerPerson}.png`;
-            document.getElementById('qr-img').src = qrUrl;
+            currentQrUrl = `https://promptpay.io/${ppId}/${currentPayPerPerson}.png`;
+            document.getElementById('qr-img').src = currentQrUrl;
             
             document.getElementById('result').classList.remove('hidden');
+            document.getElementById('send-btn').classList.remove('hidden'); // โชว์ปุ่มส่งเข้ากลุ่ม
+        }
+
+        async function sendFlexMessage() {
+            if (!liff.isInClient()) {
+                alert("ฟังก์ชันนี้ใช้งานได้เมื่อเปิดผ่านแอป LINE เท่านั้นครับ");
+                return;
+            }
+
+            const flexMsg = {
+                type: "flex",
+                altText: "บิลก๊วนตีแบดมาแล้วจ้า สแกนจ่ายได้เลย 🏸",
+                contents: {
+                    type: "bubble",
+                    body: {
+                        type: "box",
+                        layout: "vertical",
+                        contents: [
+                            { type: "text", text: "🤑 หารกัน", weight: "bold", size: "xl", color: "#1DB446" },
+                            { type: "text", text: "ยอดรวมทั้งหมด: " + currentTotal + " บาท", margin: "md", size: "sm" },
+                            { type: "text", text: "หาร " + currentPeople + " คน ตกคนละ:", margin: "sm", size: "sm" },
+                            { type: "text", text: currentPayPerPerson + " บาท", weight: "bold", size: "3xl", color: "#ef4444", margin: "md", align: "center" },
+                            { type: "image", url: currentQrUrl, size: "full", aspectMode: "cover", margin: "lg" },
+                            { type: "text", text: "สแกนผ่านแอปธนาคารได้เลยครับ", margin: "md", size: "xs", color: "#aaaaaa", align: "center" }
+                        ]
+                    }
+                }
+            };
+
+            try {
+                await liff.sendMessages([flexMsg]);
+                alert("ส่งบิลเข้ากลุ่มเรียบร้อย!");
+                liff.closeWindow(); // ส่งเสร็จแล้วปิดหน้าต่างอัตโนมัติ
+            } catch (error) {
+                alert("ส่งไม่สำเร็จ: " + error);
+            }
         }
     </script>
 </body>

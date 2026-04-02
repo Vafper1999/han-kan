@@ -17,7 +17,7 @@
         <label class="block text-sm font-bold mb-1">รายการค่าใช้จ่าย (บาท):</label>
         <div id="items-container">
             <div class="flex gap-2 mb-2 item-row">
-                <input type="text" class="w-2/3 border p-2 rounded item-name" placeholder="เช่น ค่าคอร์ท, ค่าลูก">
+                <input type="text" class="w-2/3 border p-2 rounded item-name" placeholder="เช่น ค่าอาหาร, เครื่องดื่ม">
                 <input type="number" class="w-1/3 border p-2 rounded item-price" placeholder="ราคา" oninput="calculateTotal()">
             </div>
         </div>
@@ -42,15 +42,14 @@
     </div>
 
     <script>
-        // กำหนดตัวแปรเก็บค่าไว้ส่ง Flex
         let currentTotal = 0;
         let currentPayPerPerson = 0;
         let currentQrUrl = "";
         let currentPeople = 0;
+        let currentItems = []; // เก็บรายการทั้งหมด
 
-        // Initialize LIFF
         async function main() {
-            await liff.init({ liffId: "2009682094-BLHEpMRb" }); // <-- เปลี่ยนตรงนี้เป็น LIFF ID ของคุณ
+            await liff.init({ liffId: "2009682094-BLHEpMRb" });
         }
         main();
 
@@ -81,6 +80,17 @@
             currentTotal = calculateTotal();
             currentPeople = parseInt(document.getElementById('people').value);
 
+            // เก็บรายการสินค้าทั้งหมด
+            currentItems = [];
+            const itemRows = document.querySelectorAll('.item-row');
+            itemRows.forEach(row => {
+                const name = row.querySelector('.item-name').value || 'ไม่ระบุชื่อรายการ';
+                const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                if(price > 0) {
+                    currentItems.push({ name, price });
+                }
+            });
+
             if(!ppId || currentTotal <= 0 || !currentPeople || currentPeople <= 0) {
                 alert('กรุณากรอกข้อมูลให้ครบและถูกต้องครับ');
                 return;
@@ -88,12 +98,11 @@
 
             currentPayPerPerson = (currentTotal / currentPeople).toFixed(2);
             document.getElementById('pay-amount').innerText = currentPayPerPerson;
-            
             currentQrUrl = `https://promptpay.io/${ppId}/${currentPayPerPerson}.png`;
             document.getElementById('qr-img').src = currentQrUrl;
             
             document.getElementById('result').classList.remove('hidden');
-            document.getElementById('send-btn').classList.remove('hidden'); // โชว์ปุ่มส่งเข้ากลุ่ม
+            document.getElementById('send-btn').classList.remove('hidden');
         }
 
         async function sendFlexMessage() {
@@ -102,20 +111,41 @@
                 return;
             }
 
+            // สร้างกล่องรายการสินค้าสำหรับ Flex Message
+            const itemContents = currentItems.map(item => ({
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                    { type: "text", text: item.name, size: "sm", color: "#555555", flex: 2 },
+                    { type: "text", text: item.price.toFixed(2) + " ฿", size: "sm", color: "#111111", align: "end", flex: 1 }
+                ]
+            }));
+
             const flexMsg = {
                 type: "flex",
-                altText: "บิลก๊วนตีแบดมาแล้วจ้า สแกนจ่ายได้เลย 🏸",
+                altText: "บิลเรียกเก็บเงินมาแล้วจ้า สแกนจ่ายได้เลย 🤑",
                 contents: {
                     type: "bubble",
                     body: {
                         type: "box",
                         layout: "vertical",
                         contents: [
-                            { type: "text", text: "🤑 หารกัน", weight: "bold", size: "xl", color: "#1DB446" },
-                            { type: "text", text: "ยอดรวมทั้งหมด: " + currentTotal + " บาท", margin: "md", size: "sm" },
-                            { type: "text", text: "หาร " + currentPeople + " คน ตกคนละ:", margin: "sm", size: "sm" },
-                            { type: "text", text: currentPayPerPerson + " บาท", weight: "bold", size: "3xl", color: "#ef4444", margin: "md", align: "center" },
-                            { type: "image", url: currentQrUrl, size: "full", aspectMode: "cover", margin: "lg" },
+                            { type: "text", text: "🤑 หารกัน", weight: "bold", size: "xl", color: "#1DB446", align: "center", margin: "sm" },
+                            { type: "separator", margin: "md" },
+                            { type: "box", layout: "vertical", margin: "md", spacing: "sm", contents: itemContents },
+                            { type: "separator", margin: "md" },
+                            { type: "box", layout: "horizontal", margin: "md", contents: [
+                                { type: "text", text: "ยอดรวม", size: "sm", color: "#555555" },
+                                { type: "text", text: currentTotal.toFixed(2) + " ฿", weight: "bold", size: "sm", color: "#111111", align: "end" }
+                            ]},
+                            { type: "box", layout: "horizontal", contents: [
+                                { type: "text", text: "หารทั้งหมด", size: "sm", color: "#555555" },
+                                { type: "text", text: currentPeople + " คน", size: "sm", color: "#111111", align: "end" }
+                            ]},
+                            { type: "text", text: "ตกคนละ", size: "sm", color: "#555555", align: "center", margin: "lg" },
+                            // ปรับขนาดฟอนต์ยอดจ่ายให้เล็กลงจาก 3xl เป็น xl
+                            { type: "text", text: currentPayPerPerson + " บาท", weight: "bold", size: "xl", color: "#ef4444", align: "center", margin: "sm" },
+                            { type: "image", url: currentQrUrl, size: "full", aspectMode: "cover", margin: "md" },
                             { type: "text", text: "สแกนผ่านแอปธนาคารได้เลยครับ", margin: "md", size: "xs", color: "#aaaaaa", align: "center" }
                         ]
                     }
@@ -124,8 +154,7 @@
 
             try {
                 await liff.sendMessages([flexMsg]);
-                alert("ส่งบิลเข้ากลุ่มเรียบร้อย!");
-                liff.closeWindow(); // ส่งเสร็จแล้วปิดหน้าต่างอัตโนมัติ
+                liff.closeWindow(); 
             } catch (error) {
                 alert("ส่งไม่สำเร็จ: " + error);
             }

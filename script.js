@@ -153,11 +153,12 @@ function prepareFlexMessage(total, listContents, receiver, pp, qrUrl) {
 async function sendToLine() {
     if (!flexPayload) return;
     try {
-        await liff.sendMessages([
+        // เปลี่ยนมาใช้ shareTargetPicker แทน
+        await liff.shareTargetPicker([
             { "type": "flex", "altText": "🍜 บิลค่าอาหารมาแล้ว!", "contents": flexPayload }
         ]);
-        alert("✅ ส่งบิลเข้ากลุ่มเรียบร้อย!");
-        liff.closeWindow(); // ปิดหน้าต่างให้เนียนๆ
+        // พอกดส่งเสร็จให้ปิดหน้าต่าง LIFF อัตโนมัติ
+        liff.closeWindow(); 
     } catch (err) {
         alert("ส่งไม่สำเร็จ: " + err.message);
     }

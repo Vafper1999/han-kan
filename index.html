@@ -3,162 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>หารกัน</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>🍜 หารกัน - ค่าอาหาร</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="food-icon.png?v=1" type="image/png">
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
-<body class="bg-gray-100 p-4">
-    <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md mt-10">
-        <h2 class="text-2xl font-bold mb-4 text-center">🤑 หารกัน</h2>
+<body>
+    <div class="container">
+        <h1>🍜 หารค่าอาหาร</h1>
         
-        <label class="block text-sm font-bold mb-1">พร้อมเพย์คนรับเงิน:</label>
-        <input type="text" id="pp-id" class="w-full border p-2 mb-4 rounded" placeholder="เบอร์โทร หรือ บัตร ปชช.">
-
-        <label class="block text-sm font-bold mb-1">รายการค่าใช้จ่าย (บาท):</label>
-        <div id="items-container">
-            <div class="flex gap-2 mb-2 item-row">
-                <input type="text" class="w-2/3 border p-2 rounded item-name" placeholder="เช่น ค่าอาหาร, เครื่องดื่ม">
-                <input type="number" class="w-1/3 border p-2 rounded item-price" placeholder="ราคา" oninput="calculateTotal()">
+        <div class="card">
+            <h3>🛵 ค่าใช้จ่ายส่วนกลาง</h3>
+            <div class="input-row">
+                <div class="input-group">
+                    <label>ค่าส่ง (บาท)</label>
+                    <input type="number" id="deliveryFee" value="0">
+                </div>
+                <div class="input-group">
+                    <label>ส่วนลดรวม (บาท)</label>
+                    <input type="number" id="discount" value="0">
+                </div>
             </div>
         </div>
-        <button onclick="addItem()" class="text-sm text-blue-500 mb-4">+ เพิ่มรายการ</button>
 
-        <div class="bg-gray-50 p-3 rounded mb-4 text-right font-bold">
-            ยอดรวมทั้งหมด: <span id="total-amount" class="text-lg text-green-600">0</span> บาท
+        <div class="card">
+            <h3>💳 ข้อมูลคนรับเงิน (สร้าง QR)</h3>
+            <div class="input-group">
+                <label>เบอร์พร้อมเพย์ (ใส่เพื่อสร้าง QR Code)</label>
+                <input type="text" id="promptpay" placeholder="เช่น 0812345678">
+            </div>
+            <div class="input-group">
+                <label>ชื่อบัญชี</label>
+                <input type="text" id="receiverName" placeholder="เช่น แม็ก">
+            </div>
         </div>
 
-        <label class="block text-sm font-bold mb-1">หารกี่คน (รวมคนจ่าย):</label>
-        <input type="number" id="people" class="w-full border p-2 mb-4 rounded" placeholder="จำนวนคน">
+        <div class="card">
+            <h3>👥 รายการอาหารแต่ละคน</h3>
+            <div id="playersList"></div>
+            <button class="btn-add" onclick="addPlayer()">+ เพิ่มคนกิน</button>
+        </div>
 
-        <button onclick="generateQR()" class="w-full bg-green-500 text-white p-3 rounded font-bold text-lg mb-2">คำนวณ & ดูตัวอย่าง</button>
-        
-        <button id="send-btn" onclick="sendFlexMessage()" class="w-full bg-blue-500 text-white p-3 rounded font-bold text-lg hidden">ส่งบิลเข้ากลุ่ม LINE 🚀</button>
+        <button class="btn-calc" onclick="calculate()">🧮 คำนวณยอด</button>
 
-        <div id="result" class="mt-6 text-center hidden">
-            <hr class="mb-4">
-            <h3 class="text-xl font-bold text-red-600">โอนคนละ: <span id="pay-amount">0</span> บาท</h3>
-            <img id="qr-img" src="" alt="PromptPay QR Code" class="mx-auto mt-4 border-2 border-gray-200 p-2 rounded-lg">
+        <div id="resultSection" class="hidden">
+            <h3>📊 สรุปยอดโอน</h3>
+            <div class="table-responsive">
+                <table id="resultTable">
+                    <thead>
+                        <tr>
+                            <th>ชื่อ</th>
+                            <th>ค่าอาหาร</th>
+                            <th>(+ส่ง/-ลด)</th>
+                            <th>ยอดโอน</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="qr-section hidden" id="qrContainer">
+                <p>สแกนจ่ายยอดรวม <span id="qrAmountText"></span> บ.</p>
+                <img id="qrImage" src="" alt="PromptPay QR">
+            </div>
+
+            <button class="btn-line hidden" id="btnSendLine" onclick="sendToLine()">🟢 ส่งสรุปเข้าแชทกลุ่ม</button>
+            <button class="btn-copy" onclick="copyText()">📋 ก๊อปปี้ข้อความ</button>
+            <textarea id="summaryText" rows="6" readonly></textarea>
         </div>
     </div>
-
-    <script>
-        let currentTotal = 0;
-        let currentPayPerPerson = 0;
-        let currentQrUrl = "";
-        let currentPeople = 0;
-        let currentItems = []; // เก็บรายการทั้งหมด
-
-        async function main() {
-            await liff.init({ liffId: "2009682094-BLHEpMRb" });
-        }
-        main();
-
-        function addItem() {
-            const container = document.getElementById('items-container');
-            const row = document.createElement('div');
-            row.className = 'flex gap-2 mb-2 item-row';
-            row.innerHTML = `
-                <input type="text" class="w-2/3 border p-2 rounded item-name" placeholder="รายการ">
-                <input type="number" class="w-1/3 border p-2 rounded item-price" placeholder="ราคา" oninput="calculateTotal()">
-            `;
-            container.appendChild(row);
-        }
-
-        function calculateTotal() {
-            const prices = document.querySelectorAll('.item-price');
-            let total = 0;
-            prices.forEach(input => {
-                const val = parseFloat(input.value) || 0;
-                total += val;
-            });
-            document.getElementById('total-amount').innerText = total;
-            return total;
-        }
-
-        function generateQR() {
-            const ppId = document.getElementById('pp-id').value;
-            currentTotal = calculateTotal();
-            currentPeople = parseInt(document.getElementById('people').value);
-
-            // เก็บรายการสินค้าทั้งหมด
-            currentItems = [];
-            const itemRows = document.querySelectorAll('.item-row');
-            itemRows.forEach(row => {
-                const name = row.querySelector('.item-name').value || 'ไม่ระบุชื่อรายการ';
-                const price = parseFloat(row.querySelector('.item-price').value) || 0;
-                if(price > 0) {
-                    currentItems.push({ name, price });
-                }
-            });
-
-            if(!ppId || currentTotal <= 0 || !currentPeople || currentPeople <= 0) {
-                alert('กรุณากรอกข้อมูลให้ครบและถูกต้องครับ');
-                return;
-            }
-
-            currentPayPerPerson = (currentTotal / currentPeople).toFixed(2);
-            document.getElementById('pay-amount').innerText = currentPayPerPerson;
-            currentQrUrl = `https://promptpay.io/${ppId}/${currentPayPerPerson}.png`;
-            document.getElementById('qr-img').src = currentQrUrl;
-            
-            document.getElementById('result').classList.remove('hidden');
-            document.getElementById('send-btn').classList.remove('hidden');
-        }
-
-        async function sendFlexMessage() {
-            if (!liff.isInClient()) {
-                alert("ฟังก์ชันนี้ใช้งานได้เมื่อเปิดผ่านแอป LINE เท่านั้นครับ");
-                return;
-            }
-
-            // สร้างกล่องรายการสินค้าสำหรับ Flex Message
-            const itemContents = currentItems.map(item => ({
-                type: "box",
-                layout: "horizontal",
-                contents: [
-                    { type: "text", text: item.name, size: "sm", color: "#555555", flex: 2 },
-                    { type: "text", text: item.price.toFixed(2) + " ฿", size: "sm", color: "#111111", align: "end", flex: 1 }
-                ]
-            }));
-
-            const flexMsg = {
-                type: "flex",
-                altText: "บิลเรียกเก็บเงินมาแล้วจ้า สแกนจ่ายได้เลย 🤑",
-                contents: {
-                    type: "bubble",
-                    body: {
-                        type: "box",
-                        layout: "vertical",
-                        contents: [
-                            { type: "text", text: "🤑 หารกัน", weight: "bold", size: "xl", color: "#1DB446", align: "center", margin: "sm" },
-                            { type: "separator", margin: "md" },
-                            { type: "box", layout: "vertical", margin: "md", spacing: "sm", contents: itemContents },
-                            { type: "separator", margin: "md" },
-                            { type: "box", layout: "horizontal", margin: "md", contents: [
-                                { type: "text", text: "ยอดรวม", size: "sm", color: "#555555" },
-                                { type: "text", text: currentTotal.toFixed(2) + " ฿", weight: "bold", size: "sm", color: "#111111", align: "end" }
-                            ]},
-                            { type: "box", layout: "horizontal", contents: [
-                                { type: "text", text: "หารทั้งหมด", size: "sm", color: "#555555" },
-                                { type: "text", text: currentPeople + " คน", size: "sm", color: "#111111", align: "end" }
-                            ]},
-                            { type: "text", text: "ตกคนละ", size: "sm", color: "#555555", align: "center", margin: "lg" },
-                            // ปรับขนาดฟอนต์ยอดจ่ายให้เล็กลงจาก 3xl เป็น xl
-                            { type: "text", text: currentPayPerPerson + " บาท", weight: "bold", size: "xl", color: "#ef4444", align: "center", margin: "sm" },
-                            { type: "image", url: currentQrUrl, size: "full", aspectMode: "cover", margin: "md" },
-                            { type: "text", text: "สแกนผ่านแอปธนาคารได้เลยครับ", margin: "md", size: "xs", color: "#aaaaaa", align: "center" }
-                        ]
-                    }
-                }
-            };
-
-            try {
-                await liff.sendMessages([flexMsg]);
-                liff.closeWindow(); 
-            } catch (error) {
-                alert("ส่งไม่สำเร็จ: " + error);
-            }
-        }
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>

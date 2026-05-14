@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap');
+
+:root {
+    --primary: #8AB6D6; 
+    --accent: #FFB7B2; 
+    --bg-color: #FFFDF9; 
+    --card-bg: #FFFFFF;
+    --text-dark: #555555; 
+    --border-light: #EAEAEA;
+    --btn-add-bg: #E2F0CB; 
+    --btn-remove-bg: #FFDAC1; 
+    --line-green: #00B900;
+}
+
+* { box-sizing: border-box; font-family: 'Kanit', sans-serif; }
+body { background-color: var(--bg-color); color: var(--text-dark); margin: 0; padding: 15px; }
+.container { max-width: 600px; margin: 0 auto; background: var(--card-bg); padding: 25px; border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.05); }
+h1 { text-align: center; color: var(--primary); margin-top: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.05); }
+h3 { color: var(--primary); border-bottom: 2px dashed var(--accent); padding-bottom: 8px; margin-top: 0; }
+.card { background-color: #FAFAFA; padding: 18px; border-radius: 16px; margin-bottom: 20px; border: 1px solid var(--border-light); }
+.input-group { margin-bottom: 12px; display: flex; flex-direction: column; }
+label { font-size: 14px; font-weight: 500; margin-bottom: 6px; color: var(--text-dark); }
+input[type="text"], input[type="number"], select, textarea { padding: 12px; border: 1px solid #DDDDDD; border-radius: 12px; font-size: 16px; outline: none; transition: all 0.3s ease; background-color: var(--card-bg); }
+input:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(138, 182, 214, 0.2); }
+.player-row { display: flex; gap: 10px; align-items: center; background: var(--card-bg); padding: 12px; border: 1px solid var(--border-light); border-radius: 12px; margin-bottom: 12px; transition: transform 0.2s; }
+.player-row input[type="text"] { flex: 2; }
+.player-row input[type="number"] { flex: 1.5; }
+.btn-remove { background: var(--btn-remove-bg); color: #E07A5F; border: none; border-radius: 10px; padding: 12px; cursor: pointer; font-weight: bold; }
+button { cursor: pointer; font-weight: 500; transition: 0.3s; }
+.btn-add { background: var(--btn-add-bg); color: #6B9080; border: none; padding: 12px; width: 100%; border-radius: 12px; margin-top: 5px; font-size: 16px; }
+.btn-calc { background: var(--primary); color: white; border: none; padding: 16px; width: 100%; font-size: 18px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(138, 182, 214, 0.4); }
+.btn-calc:hover { background: #73A2C6; transform: translateY(-2px); }
+.btn-copy { background: var(--accent); color: white; border: none; padding: 14px; width: 100%; font-size: 16px; border-radius: 12px; margin-top: 12px; }
+.btn-line { background: var(--line-green); color: white; border: none; padding: 14px; width: 100%; font-size: 16px; border-radius: 12px; margin-top: 12px; box-shadow: 0 4px 10px rgba(0, 185, 0, 0.3); }
+.hidden { display: none !important; }
+.table-responsive { overflow-x: auto; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 20px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-light); }
+th, td { padding: 12px; text-align: center; border-bottom: 1px solid var(--border-light); }
+th { background-color: var(--primary); color: white; font-weight: 400; }
+tr:last-child td { border-bottom: none; }
+tr:nth-child(even) { background-color: #FAFAFA; }
+textarea { width: 100%; resize: none; background: #FAFAFA; border-radius: 12px; padding: 15px; margin-top:10px; }
+.input-row { display: flex; gap: 15px; }
+.input-row .input-group { flex: 1; }
+/* กล่อง QR Code */
+.qr-section { text-align: center; background: #FAFAFA; padding: 15px; border-radius: 12px; border: 2px dashed var(--primary); margin-bottom: 15px; }
+.qr-section img { max-width: 200px; border-radius: 8px; }
+.qr-section p { font-weight: bold; color: var(--primary); margin-top: 0; }
+@media (max-width: 480px) { .input-row { flex-direction: column; gap: 0; } .player-row { flex-direction: column; align-items: stretch; } .player-row .btn-remove { width: 100%; } }

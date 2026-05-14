@@ -2,7 +2,7 @@ let playerCount = 0;
 let flexPayload = null; // เก็บข้อมูลไว้ส่งเข้าไลน์
 
 // ⚠️ ใส่ LIFF ID ที่สร้างมาตรงนี้
-const LIFF_ID = "YOUR_LIFF_ID_HERE"; 
+const LIFF_ID = "2010086764-OxLn4fGJ"; 
 
 window.onload = async () => {
     addPlayer('ว๊าฟ', 100);

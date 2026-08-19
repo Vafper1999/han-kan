@@ -11,6 +11,9 @@ window.onload = async () => {
 
     try {
         await liff.init({ liffId: LIFF_ID });
+        if (liff.isInClient()) {
+            document.getElementById('btnSendLine').classList.remove('hidden');
+        }
     } catch (err) {
         console.error("LIFF Init failed", err);
     }
@@ -286,14 +289,12 @@ function renderSummary(transactions, totalTrip) {
 async function sendToLine() {
     if (!flexPayload) return;
     try {
-        // ใช้ sendMessages เพื่อส่งเข้าแชทกลุ่มที่เปิด LIFF อยู่โดยตรง
-        await liff.sendMessages([
+        await liff.shareTargetPicker([
             { "type": "flex", "altText": "🍜 บิลค่าอาหารมาแล้ว!", "contents": flexPayload }
         ]);
-        alert("✅ ส่งบิลเข้าแชทเรียบร้อย!");
         liff.closeWindow(); 
     } catch (err) {
-        alert("❌ ส่งไม่สำเร็จ! กรุณาเช็คว่าเปิด 'chat_message.write' ในหน้า LINE Developers หรือยัง\n\nError: " + err.message);
+        alert("ส่งไม่สำเร็จ: " + err.message);
     }
 }
 

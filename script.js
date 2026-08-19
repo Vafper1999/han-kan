@@ -11,9 +11,6 @@ window.onload = async () => {
 
     try {
         await liff.init({ liffId: LIFF_ID });
-        if (liff.isInClient()) {
-            document.getElementById('btnSendLine').classList.remove('hidden');
-        }
     } catch (err) {
         console.error("LIFF Init failed", err);
     }

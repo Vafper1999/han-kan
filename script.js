@@ -1,5 +1,5 @@
 // ⚠️ ใส่ LIFF ID ที่นี่
-const LIFF_ID = "2010086764-R4ZjE1aa "; 
+const LIFF_ID = "2010086764-R4ZjE1aa"; 
 let flexPayload = null;
 let billCount = 0;
 

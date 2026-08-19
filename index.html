@@ -10,66 +10,48 @@
 </head>
 <body>
     <div class="container">
-        <h1>🍜 หารค่าอาหาร</h1>
+        <h1>🍜 หารค่าอาหาร (แบบแยกบิล)</h1>
         
+        <!-- 1. รายชื่อคนกิน -->
         <div class="card">
-            <h3>🛵 ค่าใช้จ่ายส่วนกลาง</h3>
-            <div class="input-row">
-                <div class="input-group">
-                    <label>ค่าส่ง (บาท)</label>
-                    <input type="number" id="deliveryFee" value="0">
-                </div>
-                <div class="input-group">
-                    <label>ส่วนลดรวม (บาท)</label>
-                    <input type="number" id="discount" value="0">
-                </div>
-            </div>
+            <h3>👥 1. ใครไปกินบ้าง?</h3>
+            <div id="peopleList"></div>
+            <button class="btn-add" onclick="addPerson()">+ เพิ่มคนกิน</button>
         </div>
 
-        <div class="card">
-            <h3>💳 ข้อมูลคนรับเงิน (สร้าง QR)</h3>
-            <div class="input-group">
-                <label>เบอร์พร้อมเพย์ (ใส่เพื่อสร้าง QR Code)</label>
-                <input type="text" id="promptpay" placeholder="เช่น 0812345678">
-            </div>
-            <div class="input-group">
-                <label>ชื่อบัญชี</label>
-                <input type="text" id="receiverName" placeholder="เช่น แม็ก">
-            </div>
+        <!-- 2. บิลร้านอาหาร -->
+        <div id="billsContainer"></div>
+        <button class="btn-main" onclick="addBill()">+ เพิ่มบิลร้านอาหาร</button>
+
+        <!-- 3. ข้อมูลบัญชีรับเงิน -->
+        <div class="card" style="margin-top: 20px;">
+            <h3>💳 3. บัญชีคนสำรองจ่าย</h3>
+            <p style="font-size: 13px; color: #888;">ใส่ข้อมูลเพื่อให้เพื่อนโอนเงินคืน (เพิ่มได้ตามจำนวนคนที่ออกเงินไปก่อน)</p>
+            <div id="bankAccountsList"></div>
+            <button class="btn-add" onclick="addBankAccount()">+ เพิ่มบัญชีรับเงิน</button>
         </div>
 
-        <div class="card">
-            <h3>👥 รายการอาหารแต่ละคน</h3>
-            <div id="playersList"></div>
-            <button class="btn-add" onclick="addPlayer()">+ เพิ่มคนกิน</button>
-        </div>
+        <!-- ปุ่มคำนวณ -->
+        <button class="btn-calc" onclick="calculate()">🧮 คำนวณสรุปยอด</button>
 
-        <button class="btn-calc" onclick="calculate()">🧮 คำนวณยอด</button>
-
+        <!-- 4. สรุปผล -->
         <div id="resultSection" class="hidden">
-            <h3>📊 สรุปยอดโอน</h3>
+            <h3>📊 สรุปยอดต้องโอน (หักลบหนี้แล้ว)</h3>
             <div class="table-responsive">
                 <table id="resultTable">
                     <thead>
                         <tr>
-                            <th>ชื่อ</th>
-                            <th>ค่าอาหาร</th>
-                            <th>(+ส่ง/-ลด)</th>
-                            <th>ยอดโอน</th>
+                            <th>คนโอน ➡️ คนรับ</th>
+                            <th>ยอดเงิน (บ.)</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
             </div>
 
-            <div class="qr-section hidden" id="qrContainer">
-                <p>สแกนจ่ายยอดรวม <span id="qrAmountText"></span> บ.</p>
-                <img id="qrImage" src="" alt="PromptPay QR">
-            </div>
-
             <button class="btn-line hidden" id="btnSendLine" onclick="sendToLine()">🟢 ส่งสรุปเข้าแชทกลุ่ม</button>
             <button class="btn-copy" onclick="copyText()">📋 ก๊อปปี้ข้อความ</button>
-            <textarea id="summaryText" rows="6" readonly></textarea>
+            <textarea id="summaryText" rows="10" readonly></textarea>
         </div>
     </div>
     <script src="script.js"></script>

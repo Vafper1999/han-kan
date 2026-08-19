@@ -1,17 +1,16 @@
-let playerCount = 0;
-let flexPayload = null; // เก็บข้อมูลไว้ส่งเข้าไลน์
-
-// ⚠️ ใส่ LIFF ID ที่สร้างมาตรงนี้
+// ⚠️ ใส่ LIFF ID ที่นี่
 const LIFF_ID = "2010086764-OxLn4fGJ"; 
+let flexPayload = null;
+let billCount = 0;
 
 window.onload = async () => {
-    addPlayer('ว๊าฟ', 100);
-    addPlayer('แม็ก', 150);
-    
-    // ตั้งค่า LIFF
+    // กำหนดชื่อเริ่มต้น
+    addPerson('คุณ A');
+    addPerson('คุณ B');
+    addBill(); // สร้างบิลร้านแรกให้เลย
+
     try {
         await liff.init({ liffId: LIFF_ID });
-        // ถ้าเปิดในแอป LINE ให้โชว์ปุ่มส่งเข้ากลุ่ม
         if (liff.isInClient()) {
             document.getElementById('btnSendLine').classList.remove('hidden');
         }
@@ -20,147 +19,284 @@ window.onload = async () => {
     }
 };
 
-function addPlayer(name = '', cost = '') {
-    playerCount++;
-    const id = `player_${playerCount}`;
+// ================= UI Management =================
+function addPerson(name = '') {
     const div = document.createElement('div');
-    div.className = 'player-row';
-    div.id = id;
+    div.className = 'person-row';
     div.innerHTML = `
-        <input type="text" class="p-name" placeholder="ชื่อ" value="${name}">
-        <input type="number" class="p-cost" placeholder="ค่าอาหาร (บ.)" value="${cost}">
-        <button class="btn-remove" onclick="removePlayer('${id}')">X</button>
+        <input type="text" class="person-name" value="${name}" placeholder="ชื่อ (เช่น คุณ A)" onchange="syncUI()">
+        <button class="btn-remove" onclick="this.parentElement.remove(); syncUI()">X</button>
     `;
-    document.getElementById('playersList').appendChild(div);
+    document.getElementById('peopleList').appendChild(div);
+    syncUI();
 }
 
-function removePlayer(id) { document.getElementById(id).remove(); }
+function addBill() {
+    billCount++;
+    const div = document.createElement('div');
+    div.className = 'card bill-card';
+    div.innerHTML = `
+        <div class="bill-header">
+            <h3 style="margin:0;">🍽️ ร้านที่ ${billCount}</h3>
+            <button class="btn-remove" style="padding: 6px 12px;" onclick="this.closest('.bill-card').remove(); syncUI()">ลบบิล</button>
+        </div>
+        <div class="input-group">
+            <input type="text" class="shop-name" placeholder="ชื่อร้าน (ไม่บังคับ)">
+        </div>
+        <div class="input-group">
+            <label>ผู้สำรองจ่ายบิลนี้:</label>
+            <select class="payer-select dynamic-names"></select>
+        </div>
+        <div class="items-container"></div>
+        <button class="btn-small" style="width:100%; padding:10px; background:#FFE5D9; color:#E76F51;" onclick="addItem(this)">+ เพิ่มรายการอาหาร</button>
+    `;
+    document.getElementById('billsContainer').appendChild(div);
+    addItem(div.querySelector('.btn-small')); // แอดไอเทมแรกให้อัตโนมัติ
+    syncUI();
+}
 
-function calculate() {
-    const deliveryFee = parseFloat(document.getElementById('deliveryFee').value) || 0;
-    const discount = parseFloat(document.getElementById('discount').value) || 0;
-    const ppNumber = document.getElementById('promptpay').value.trim();
-    const receiverName = document.getElementById('receiverName').value.trim() || 'คนรับเงิน';
-    
-    const rows = document.querySelectorAll('.player-row');
-    let players = [];
-    let totalFood = 0;
+function addItem(btn) {
+    const container = btn.previousElementSibling;
+    const div = document.createElement('div');
+    div.className = 'item-row';
+    div.innerHTML = `
+        <div class="item-inputs">
+            <input type="text" class="item-name" placeholder="ชื่อเมนู" style="flex:2">
+            <input type="number" class="item-price" placeholder="ราคา" style="flex:1">
+            <button class="btn-remove-item" onclick="this.closest('.item-row').remove()">X</button>
+        </div>
+        <div class="item-consumers">
+            <div class="consumer-header">
+                <span>ใครกินเมนูนี้บ้าง?</span>
+                <button class="btn-small" onclick="toggleConsumers(this)">เลือกทั้งหมด / ไม่เลือก</button>
+            </div>
+            <div class="consumers-list dynamic-consumers"></div>
+        </div>
+    `;
+    container.appendChild(div);
+    syncUI();
+}
 
-    rows.forEach((row, index) => {
-        const name = row.querySelector('.p-name').value.trim() || `คนที่ ${index+1}`;
-        const cost = parseFloat(row.querySelector('.p-cost').value) || 0;
-        totalFood += cost;
-        players.push({ name, cost });
+function addBankAccount() {
+    const div = document.createElement('div');
+    div.className = 'bank-row';
+    div.innerHTML = `
+        <select class="bank-owner-select dynamic-names"></select>
+        <input type="text" class="bank-info" placeholder="เช่น กสิกร 0812xxxxxx">
+        <button class="btn-remove" onclick="this.parentElement.remove()">X</button>
+    `;
+    document.getElementById('bankAccountsList').appendChild(div);
+    syncUI();
+}
+
+function toggleConsumers(btn) {
+    const list = btn.closest('.item-consumers').querySelector('.consumers-list');
+    const cbs = list.querySelectorAll('input[type="checkbox"]');
+    const allChecked = Array.from(cbs).every(cb => cb.checked);
+    cbs.forEach(cb => cb.checked = !allChecked);
+}
+
+// อัปเดต Dropdown และ Checkbox ทุกครั้งที่แก้ชื่อคน
+function syncUI() {
+    const names = Array.from(document.querySelectorAll('.person-name'))
+                      .map(inp => inp.value.trim())
+                      .filter(n => n !== '');
+
+    // อัปเดต Dropdowns
+    document.querySelectorAll('.dynamic-names').forEach(select => {
+        const currentVal = select.value;
+        select.innerHTML = '<option value="">-- เลือกคน --</option>';
+        names.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name; opt.textContent = name;
+            select.appendChild(opt);
+        });
+        if (names.includes(currentVal)) select.value = currentVal;
     });
 
-    if (players.length === 0) return alert("กรุณาเพิ่มคนกิน");
+    // อัปเดต Checkboxes (จำค่าที่เคยติ๊กไว้ด้วย)
+    document.querySelectorAll('.dynamic-consumers').forEach(container => {
+        const checkedNames = Array.from(container.querySelectorAll('input:checked')).map(cb => cb.value);
+        const isInit = container.dataset.init === "true";
+        container.innerHTML = '';
+        
+        names.forEach(name => {
+            const label = document.createElement('label');
+            label.className = 'cb-label';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = name;
+            cb.className = 'consumer-cb';
+            // ถ้าสร้างใหม่ให้ติ๊กถูกหมด แต่ถ้าเคยสร้างแล้วให้อิงค่าเดิม
+            cb.checked = isInit ? checkedNames.includes(name) : true;
+            
+            label.appendChild(cb);
+            label.append(' ' + name);
+            container.appendChild(label);
+        });
+        container.dataset.init = "true";
+    });
+}
 
-    // ส่วนต่างที่ต้องหารเท่ากัน
-    const sharedExtra = deliveryFee - discount; 
-    const sharePerPerson = sharedExtra / players.length;
-    const totalTrip = totalFood + sharedExtra;
+// ================= Calculation =================
+function calculate() {
+    const names = Array.from(document.querySelectorAll('.person-name')).map(inp => inp.value.trim()).filter(n => n !== '');
+    if (names.length === 0) return alert("กรุณาใส่ชื่อคนกินอย่างน้อย 1 คน");
 
+    // แปลงเงินเป็นหน่วย "สตางค์" เพื่อป้องกันปัญหาทศนิยมคลาดเคลื่อนของ Javascript
+    let balancesCents = {};
+    names.forEach(n => balancesCents[n] = 0);
+    let totalTrip = 0;
+
+    const bills = document.querySelectorAll('.bill-card');
+    for (let bill of bills) {
+        const payer = bill.querySelector('.payer-select').value;
+        if (!payer) return alert("กรุณาเลือก 'ผู้สำรองจ่าย' ให้ครบทุกบิล");
+        
+        let billTotalCents = 0;
+        const items = bill.querySelectorAll('.item-row');
+        
+        for (let item of items) {
+            const price = parseFloat(item.querySelector('.item-price').value) || 0;
+            const priceCents = Math.round(price * 100);
+            const consumers = Array.from(item.querySelectorAll('.consumer-cb:checked')).map(cb => cb.value);
+            
+            if (priceCents > 0) {
+                if (consumers.length === 0) return alert("มีรายการอาหารที่ไม่มีคนกิน! กรุณาติ๊กเลือกคนกินด้วยครับ");
+                
+                // หารแบบเป๊ะๆ เศษสตางค์ปัดให้คนแรก
+                const splitCents = Math.floor(priceCents / consumers.length);
+                const remainder = priceCents - (splitCents * consumers.length);
+                
+                consumers.forEach((c, idx) => {
+                    let cost = splitCents + (idx === 0 ? remainder : 0);
+                    if (balancesCents[c] !== undefined) balancesCents[c] -= cost;
+                });
+                billTotalCents += priceCents;
+            }
+        }
+        if (balancesCents[payer] !== undefined) balancesCents[payer] += billTotalCents;
+        totalTrip += (billTotalCents / 100);
+    }
+
+    if(totalTrip === 0) return alert("ยังไม่มียอดค่าอาหารเลยครับ");
+
+    // หักลบหนี้ (Debt Simplification)
+    let debtors = [], creditors = [];
+    for (let n in balancesCents) {
+        if (balancesCents[n] < 0) debtors.push({ name: n, amount: Math.abs(balancesCents[n]) });
+        else if (balancesCents[n] > 0) creditors.push({ name: n, amount: balancesCents[n] });
+    }
+
+    debtors.sort((a,b) => b.amount - a.amount);
+    creditors.sort((a,b) => b.amount - a.amount);
+
+    let transactions = [];
+    let d = 0, c = 0;
+    while (d < debtors.length && c < creditors.length) {
+        let debtor = debtors[d];
+        let creditor = creditors[c];
+        let amt = Math.min(debtor.amount, creditor.amount);
+        
+        if (amt > 0) {
+            transactions.push({ from: debtor.name, to: creditor.name, amount: amt / 100 });
+        }
+        
+        debtor.amount -= amt;
+        creditor.amount -= amt;
+        if (debtor.amount === 0) d++;
+        if (creditor.amount === 0) c++;
+    }
+
+    renderSummary(transactions, totalTrip);
+}
+
+function renderSummary(transactions, totalTrip) {
     const tbody = document.querySelector('#resultTable tbody');
     tbody.innerHTML = '';
     
-    let summaryText = `🍜 สรุปค่าอาหาร\nยอดรวม: ${totalTrip.toFixed(2)} บาท\n------------------\n`;
-    let flexContents = []; // สำหรับ Flex Message
+    let summaryText = `🍜 สรุปยอดค่าอาหาร (รวม ${totalTrip.toFixed(2)} บ.)\n------------------\n💸 สรุปการโอน (หักลบหนี้แล้ว):\n`;
+    let flexTransContents = [];
 
-    players.forEach(p => {
-        const netPay = p.cost + sharePerPerson;
-        const netStr = netPay > 0 ? netPay.toFixed(2) : "0.00";
-        const shareStr = sharePerPerson > 0 ? `+${sharePerPerson.toFixed(2)}` : sharePerPerson.toFixed(2);
+    if (transactions.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="2">ไม่ต้องโอนเงินกันเลย! (เจ๊ากันพอดี)</td></tr>`;
+        summaryText += "ไม่ต้องมีการโอนเงิน (เจ๊ากัน)\n";
+    }
 
-        tbody.innerHTML += `<tr>
-            <td>${p.name}</td>
-            <td>${p.cost}</td>
-            <td>${shareStr}</td>
-            <td><strong>${netStr}</strong></td>
-        </tr>`;
-
-        summaryText += `- ${p.name}: ${netStr} บ.\n`;
+    transactions.forEach(t => {
+        const amtStr = t.amount.toFixed(2);
+        tbody.innerHTML += `<tr><td>${t.from} ➡️ ${t.to}</td><td><strong>${amtStr}</strong></td></tr>`;
+        summaryText += `- ${t.from} โอนให้ ${t.to}: ${amtStr} บ.\n`;
         
-        // ใส่ข้อมูลคนจ่ายใน Flex
-        flexContents.push({
-            "type": "box", "layout": "horizontal",
+        flexTransContents.push({
+            "type": "box", "layout": "horizontal", "margin": "sm",
             "contents": [
-              { "type": "text", "text": p.name, "size": "sm", "color": "#555555", "flex": 0 },
-              { "type": "text", "text": `${netStr} ฿`, "size": "sm", "color": "#111111", "align": "end", "weight": "bold" }
+              { "type": "text", "text": `${t.from} ➡️ ${t.to}`, "size": "sm", "color": "#555555", "flex": 3 },
+              { "type": "text", "text": `${amtStr} ฿`, "size": "sm", "color": "#E76F51", "align": "end", "weight": "bold", "flex": 2 }
             ]
         });
     });
 
-    summaryText += `------------------\nโอนให้: ${receiverName}\nพร้อมเพย์: ${ppNumber || '-'}`;
+    summaryText += `------------------\n🏦 ข้อมูลบัญชีรับเงิน:\n`;
+    let bankInfos = [];
+    let flexBankContents = [];
+    
+    document.querySelectorAll('.bank-row').forEach(row => {
+        let owner = row.querySelector('.bank-owner-select').value;
+        let info = row.querySelector('.bank-info').value.trim();
+        if (owner && info) {
+            bankInfos.push({owner, info});
+            summaryText += `${owner}: ${info}\n`;
+            flexBankContents.push({
+                "type": "box", "layout": "vertical", "margin": "sm",
+                "contents": [
+                    { "type": "text", "text": owner, "size": "xs", "weight": "bold", "color": "#F4A261" },
+                    { "type": "text", "text": info, "size": "xs", "color": "#888888", "wrap": true }
+                ]
+            });
+        }
+    });
+
+    if (bankInfos.length === 0) summaryText += "ยังไม่ได้ระบุบัญชี\n";
+
     document.getElementById('summaryText').value = summaryText;
-
-    // สร้าง QR Code พร้อมเพย์ ถ้ามีการกรอกเบอร์
-    let qrUrl = "";
-    if (ppNumber) {
-        // ใช้ API สร้าง QR PromptPay
-        qrUrl = `https://promptpay.io/${ppNumber}/${totalTrip}.png`;
-        document.getElementById('qrImage').src = qrUrl;
-        document.getElementById('qrAmountText').textContent = totalTrip.toFixed(2);
-        document.getElementById('qrContainer').classList.remove('hidden');
-    } else {
-        document.getElementById('qrContainer').classList.add('hidden');
-    }
-
-    // เตรียม Flex Message Payload
-    prepareFlexMessage(totalTrip, flexContents, receiverName, ppNumber, qrUrl);
     document.getElementById('resultSection').classList.remove('hidden');
-}
 
-function prepareFlexMessage(total, listContents, receiver, pp, qrUrl) {
-    let bodyContents = [
-        { "type": "text", "text": "🍜 บิลค่าอาหารมาแล้ว!", "weight": "bold", "color": "#1DB446", "size": "sm" },
-        { "type": "text", "text": `${total.toFixed(2)} ฿`, "weight": "bold", "size": "xxl", "margin": "md" },
-        { "type": "separator", "margin": "xxl" },
-        { "type": "box", "layout": "vertical", "margin": "xxl", "spacing": "sm", "contents": listContents },
-        { "type": "separator", "margin": "xxl" },
-        { "type": "box", "layout": "horizontal", "margin": "md", "contents": [
-            { "type": "text", "text": "โอนที่", "size": "xs", "color": "#aaaaaa", "flex": 0 },
-            { "type": "text", "text": receiver, "color": "#aaaaaa", "size": "xs", "align": "end" }
-        ]}
-    ];
-
-    if (pp) {
-        bodyContents.push({
-            "type": "box", "layout": "horizontal",
-            "contents": [
-                { "type": "text", "text": "พร้อมเพย์", "size": "xs", "color": "#aaaaaa", "flex": 0 },
-                { "type": "text", "text": pp, "color": "#aaaaaa", "size": "xs", "align": "end" }
-            ]
-        });
-    }
-
+    // Build Flex Message
     flexPayload = {
         "type": "bubble",
-        "body": { "type": "box", "layout": "vertical", "contents": bodyContents }
+        "header": {
+            "type": "box", "layout": "vertical", "backgroundColor": "#F4A261",
+            "contents": [{ "type": "text", "text": "🍜 สรุปยอดหารค่าอาหาร", "weight": "bold", "color": "#FFFFFF", "align": "center" }]
+        },
+        "body": {
+            "type": "box", "layout": "vertical", "spacing": "md",
+            "contents": [
+                { "type": "text", "text": `ยอดรวมทั้งหมด: ${totalTrip.toFixed(2)} บาท`, "weight": "bold", "size": "sm", "color": "#aaaaaa", "align": "center" },
+                { "type": "separator", "margin": "md" },
+                ...flexTransContents
+            ]
+        }
     };
 
-    // ถ้ามี QR ให้เพิ่ม Hero Image
-    if (qrUrl) {
-        flexPayload.hero = {
-            "type": "image",
-            "url": qrUrl,
-            "size": "full",
-            "aspectRatio": "1:1",
-            "aspectMode": "cover"
-        };
+    if (flexBankContents.length > 0) {
+        flexPayload.body.contents.push({ "type": "separator", "margin": "xl" });
+        flexPayload.body.contents.push({ "type": "text", "text": "🏦 บัญชีรับเงิน", "weight": "bold", "size": "xs", "color": "#aaaaaa", "margin": "md" });
+        flexBankContents.forEach(b => flexPayload.body.contents.push(b));
     }
 }
 
 async function sendToLine() {
     if (!flexPayload) return;
     try {
-        // เปลี่ยนมาใช้ shareTargetPicker แทน
-        await liff.shareTargetPicker([
+        // ใช้ sendMessages เพื่อส่งเข้าแชทกลุ่มที่เปิด LIFF อยู่โดยตรง
+        await liff.sendMessages([
             { "type": "flex", "altText": "🍜 บิลค่าอาหารมาแล้ว!", "contents": flexPayload }
         ]);
-        // พอกดส่งเสร็จให้ปิดหน้าต่าง LIFF อัตโนมัติ
+        alert("✅ ส่งบิลเข้าแชทเรียบร้อย!");
         liff.closeWindow(); 
     } catch (err) {
-        alert("ส่งไม่สำเร็จ: " + err.message);
+        alert("❌ ส่งไม่สำเร็จ! กรุณาเช็คว่าเปิด 'chat_message.write' ในหน้า LINE Developers หรือยัง\n\nError: " + err.message);
     }
 }
 

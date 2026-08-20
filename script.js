@@ -4,8 +4,8 @@ let flexPayload = null;
 let billCount = 0;
 
 window.onload = async () => {
-    addPerson('ว๊าฟ');
-    addPerson('แม็ก');
+    addPerson('คุณ A');
+    addPerson('คุณ B');
     addBill(); 
 
     try {
@@ -19,7 +19,7 @@ function addPerson(name = '') {
     const div = document.createElement('div');
     div.className = 'person-row';
     div.innerHTML = `
-        <input type="text" class="person-name" value="${name}" placeholder="ชื่อ (เช่น ว๊าฟ)" onchange="syncUI()">
+        <input type="text" class="person-name" value="${name}" placeholder="ชื่อ (เช่น คุณ C)" onchange="syncUI()">
         <button class="btn-remove" onclick="this.parentElement.remove(); syncUI()">X</button>
     `;
     document.getElementById('peopleList').appendChild(div);

@@ -12,18 +12,15 @@
     <div class="container">
         <h1>🍜 หารค่าอาหาร (แบบแยกบิล)</h1>
         
-        <!-- 1. รายชื่อคนกิน -->
         <div class="card">
             <h3>👥 1. ใครไปกินบ้าง?</h3>
             <div id="peopleList"></div>
             <button class="btn-add" onclick="addPerson()">+ เพิ่มคนกิน</button>
         </div>
 
-        <!-- 2. บิลร้านอาหาร -->
         <div id="billsContainer"></div>
         <button class="btn-main" onclick="addBill()">+ เพิ่มบิลร้านอาหาร</button>
 
-        <!-- 3. ข้อมูลบัญชีรับเงิน -->
         <div class="card" style="margin-top: 20px;">
             <h3>💳 3. บัญชีคนสำรองจ่าย</h3>
             <p style="font-size: 13px; color: #888;">ใส่ข้อมูลเพื่อให้เพื่อนโอนเงินคืน (เพิ่มได้ตามจำนวนคนที่ออกเงินไปก่อน)</p>
@@ -31,10 +28,8 @@
             <button class="btn-add" onclick="addBankAccount()">+ เพิ่มบัญชีรับเงิน</button>
         </div>
 
-        <!-- ปุ่มคำนวณ -->
         <button class="btn-calc" onclick="calculate()">🧮 คำนวณสรุปยอด</button>
 
-        <!-- 4. สรุปผล -->
         <div id="resultSection" class="hidden">
             <h3>📊 สรุปยอดต้องโอน (หักลบหนี้แล้ว)</h3>
             <div class="table-responsive">

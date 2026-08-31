@@ -1,5 +1,7 @@
 // ⚠️ ใส่ LIFF ID ที่นี่ (ถ้าอยากใช้สิทธิ์เดียวกับแบดมินตัน ก็ใส่ไอดีของแบดได้เลย)
 const LIFF_ID = "2010086764-R4ZjE1aa"; 
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzldeglWlPQAiG9KvaIrh-KX7QpUI6ux0bjddW2gKVvu5leHP15x7rUcLURXlBh2TW2/exec";
+
 let flexPayload = null;
 let billCount = 0;
 
@@ -10,6 +12,7 @@ window.onload = async () => {
 
     try {
         await liff.init({ liffId: LIFF_ID });
+        checkPDPA(); // เรียกเช็ค PDPA ทันทีที่โหลด LIFF เสร็จ
     } catch (err) {
         console.error("LIFF Init failed", err);
     }
@@ -341,4 +344,56 @@ function copyText() {
     const text = document.getElementById('summaryText');
     text.select();
     navigator.clipboard.writeText(text.value).then(() => alert("✅ ก๊อปปี้แล้ว!"));
+}
+
+// -----------------------------------------
+// ส่วนของระบบ PDPA
+// -----------------------------------------
+function toggleAcceptBtn() {
+    const cb = document.getElementById('acceptCheckbox');
+    const btn = document.getElementById('btnAcceptPdpa');
+    if (cb.checked) {
+        btn.disabled = false;
+        btn.removeAttribute('disabled');
+        btn.classList.remove('disabled');
+    } else {
+        btn.disabled = true;
+        btn.setAttribute('disabled', 'true');
+        btn.classList.add('disabled');
+    }
+}
+
+function checkPDPA() {
+    const isAccepted = localStorage.getItem('pdpa_accepted');
+    const modal = document.getElementById('pdpaModal');
+    
+    if (!isAccepted) {
+        modal.classList.remove('hidden');
+    } else {
+        modal.classList.add('hidden');
+    }
+}
+
+async function acceptPDPA() {
+    // 1. ซ่อน Pop-up ทันที
+    document.getElementById('pdpaModal').classList.add('hidden');
+    
+    // 2. จำไว้ในเครื่อง
+    localStorage.setItem('pdpa_accepted', 'true');
+
+    // 3. ยิงเข้าหลังบ้าน (GAS)
+    if (liff.isLoggedIn()) {
+        try {
+            const profile = await liff.getProfile();
+            fetch(GAS_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    userId: profile.userId,
+                    displayName: profile.displayName
+                })
+            }).catch(e => console.error("Error sending PDPA log:", e));
+        } catch (err) {
+            console.error("Failed to get profile", err);
+        }
+    }
 }
